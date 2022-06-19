@@ -8,7 +8,6 @@ bool ew_lock;
 bool es_lock;
 bool wn_lock;
 bool pedestrian_lock;
-chan mutex = [1] of {bit}
 bool ne_req;
 bool sn_req;
 bool ew_req;
@@ -16,19 +15,23 @@ bool es_req;
 bool wn_req;
 bool req;
 
+byte limit[6];
+
+chan control_chan[6] = [1] of {bit}
+
+chan mutex = [1] of {bit}
+chan mutex2 = [1] of {bit}
+
 proctype environment(chan c) {
     do
-        :: if 
-            :: true -> c!true;
-            :: true -> skip;
-           fi
+        :: true -> c!true;
     od
 }
 
 proctype NE(chan car_req) {
     bit ne_light;
     bit blocker;
-    byte limit;
+    control_chan[0]!1;
     do
         :: car_req ? ne_req ->
             do
@@ -36,13 +39,35 @@ proctype NE(chan car_req) {
                     if
                     :: !sn_lock && !ew_lock && !es_lock && !wn_lock && !pedestrian_lock ->
                         ne_lock = true;
-                        mutex?blocker;
                         ne_light = GREEN;
                         printf("Car passed from north to east\n");
-                        // wait (!N_SENSE) /* waits until all cars pass */
                         ne_light = RED;
                         ne_lock = false;
                         ne_req = false;
+                        mutex?blocker;
+                        mutex2!1;
+                        limit[0] = limit[0] + 1;
+                        if
+                        :: limit[0] > N -> 
+                            if
+                            :: limit[0] > N && limit[1] > N && limit[2] > N && limit[3] > N && limit[4] > N && limit[5] > N ->
+                                control_chan[0]?blocker;
+                                limit[0] = 0;
+                                control_chan[1]?blocker;
+                                limit[1] = 0;
+                                control_chan[2]?blocker;
+                                limit[2] = 0;
+                                control_chan[3]?blocker;
+                                limit[3] = 0;
+                                control_chan[4]?blocker;
+                                limit[4] = 0;
+                                control_chan[5]?blocker;
+                                limit[5] = 0;
+                            :: else -> skip;
+                            fi
+                            mutex2?blocker; control_chan[0]!1;
+                        :: else -> mutex2?blocker;
+                        fi
                         break;
                     :: else -> mutex?blocker;
                     fi
@@ -53,6 +78,7 @@ proctype NE(chan car_req) {
 proctype SN(chan car_req) {
     bit sn_light;
     bit blocker;
+    control_chan[1]!1;
     do
         :: car_req ? sn_req ->
             do
@@ -60,13 +86,35 @@ proctype SN(chan car_req) {
                     if
                     :: !ne_lock && !ew_lock && !es_lock ->
                         sn_lock = true;
-                        mutex?blocker;
                         sn_light = GREEN;
                         printf("Car passed from south to north\n");
-                        // wait (!N_SENSE) /* waits until all cars pass */
                         sn_light = RED;
                         sn_lock = false;
                         sn_req = false;
+                        mutex?blocker;
+                        mutex2!1;
+                        limit[1] = limit[1] + 1;
+                        if
+                        :: limit[1] > N -> 
+                            if
+                            :: limit[0] > N && limit[1] > N && limit[2] > N && limit[3] > N && limit[4] > N && limit[5] > N ->
+                                control_chan[0]?blocker;
+                                limit[0] = 0;
+                                control_chan[1]?blocker;
+                                limit[1] = 0;
+                                control_chan[2]?blocker;
+                                limit[2] = 0;
+                                control_chan[3]?blocker;
+                                limit[3] = 0;
+                                control_chan[4]?blocker;
+                                limit[4] = 0;
+                                control_chan[5]?blocker;
+                                limit[5] = 0;
+                            :: else -> skip;
+                            fi
+                            mutex2?blocker; control_chan[1]!1;
+                        :: else -> mutex2?blocker;
+                        fi
                         break;
                     :: else -> mutex?blocker;
                     fi
@@ -77,6 +125,7 @@ proctype SN(chan car_req) {
 proctype EW(chan car_req) {
     bit ew_light;
     bit blocker;
+    control_chan[2]!1;
     do
         :: car_req ? ew_req ->
             do
@@ -84,13 +133,35 @@ proctype EW(chan car_req) {
                     if
                     :: !ne_lock && !sn_lock && !wn_lock && !pedestrian_lock ->
                         ew_lock = true;
-                        mutex?blocker;
                         ew_light = GREEN;
                         printf("Car passed from east to west\n");
-                        // wait (!N_SENSE) /* waits until all cars pass */
                         ew_light = RED;
                         ew_lock = false;
                         ew_req = false;
+                        mutex?blocker;
+                        mutex2!1;
+                        limit[2] = limit[2] + 1;
+                        if
+                        :: limit[2] > N -> 
+                            if
+                            :: limit[0] > N && limit[1] > N && limit[2] > N && limit[3] > N && limit[4] > N && limit[5] > N ->
+                                control_chan[0]?blocker;
+                                limit[0] = 0;
+                                control_chan[1]?blocker;
+                                limit[1] = 0;
+                                control_chan[2]?blocker;
+                                limit[2] = 0;
+                                control_chan[3]?blocker;
+                                limit[3] = 0;
+                                control_chan[4]?blocker;
+                                limit[4] = 0;
+                                control_chan[5]?blocker;
+                                limit[5] = 0;
+                            :: else -> skip;
+                            fi
+                            mutex2?blocker; control_chan[2]!1;
+                        :: else -> mutex2?blocker;
+                        fi
                         break;
                     :: else -> mutex?blocker;
                     fi
@@ -101,6 +172,7 @@ proctype EW(chan car_req) {
 proctype ES(chan car_req) {
     bit es_light;
     bit blocker;
+    control_chan[3]!1;
     do
         :: car_req ? es_req ->
             do
@@ -108,13 +180,35 @@ proctype ES(chan car_req) {
                     if
                     :: !ne_lock && !sn_lock && !pedestrian_lock ->
                         es_lock = true;
-                        mutex?blocker;
                         es_light = GREEN;
                         printf("Car passed from east to south\n");
-                        // wait (!N_SENSE) /* waits until all cars pass */
                         es_light = RED;
                         es_lock = false;
                         es_req = false;
+                        mutex?blocker;
+                        mutex2!1;
+                        limit[3] = limit[3] + 1;
+                        if
+                        :: limit[3] > N -> 
+                            if
+                            :: limit[0] > N && limit[1] > N && limit[2] > N && limit[3] > N && limit[4] > N && limit[5] > N ->
+                                control_chan[0]?blocker;
+                                limit[0] = 0;
+                                control_chan[1]?blocker;
+                                limit[1] = 0;
+                                control_chan[2]?blocker;
+                                limit[2] = 0;
+                                control_chan[3]?blocker;
+                                limit[3] = 0;
+                                control_chan[4]?blocker;
+                                limit[4] = 0;
+                                control_chan[5]?blocker;
+                                limit[5] = 0;
+                            :: else -> skip;
+                            fi
+                            mutex2?blocker; control_chan[3]!1;
+                        :: else -> mutex2?blocker;
+                        fi
                         break;
                     :: else -> mutex?blocker;
                     fi
@@ -125,30 +219,45 @@ proctype ES(chan car_req) {
 proctype WN(chan car_req) {
     bit wn_light;
     bit blocker;
-    byte limit;
+    control_chan[4]!1;
     do
         :: car_req ? wn_req ->
             do
                 :: mutex!1 ->
                     if
                     :: !ne_lock && !ew_lock ->
-                        //if 
-                        //:: limit > 3 ->
-                        //    mutex?blocker;
-                        //    skip;
-                        //:: else ->
-                            wn_lock = true;
-                            mutex?blocker;
-                            wn_light = GREEN;
-                            printf("Car passed from west to north\n");
-                            // wait (!N_SENSE) /* waits until all cars pass */
-                            wn_light = RED;
-                            wn_lock = false;
-                            wn_req = false;
-                            limit = limit + 1;
-                            break;
-                        //fi
-                    :: else -> mutex?blocker; limit = 0;
+                        wn_lock = true;
+                        wn_light = GREEN;
+                        printf("Car passed from west to north\n");
+                        wn_light = RED;
+                        wn_lock = false;
+                        wn_req = false;
+                        mutex?blocker;
+                        mutex2!1;
+                        limit[4] = limit[4] + 1;
+                        if
+                        :: limit[4] > N -> 
+                            if
+                            :: limit[0] > N && limit[1] > N && limit[2] > N && limit[3] > N && limit[4] > N && limit[5] > N ->
+                                control_chan[0]?blocker;
+                                limit[0] = 0;
+                                control_chan[1]?blocker;
+                                limit[1] = 0;
+                                control_chan[2]?blocker;
+                                limit[2] = 0;
+                                control_chan[3]?blocker;
+                                limit[3] = 0;
+                                control_chan[4]?blocker;
+                                limit[4] = 0;
+                                control_chan[5]?blocker;
+                                limit[5] = 0;
+                            :: else -> skip;
+                            fi
+                            mutex2?blocker; control_chan[4]!1;
+                        :: else -> mutex2?blocker;
+                        fi
+                        break;
+                    :: else -> mutex?blocker;
                     fi
             od
     od
@@ -157,27 +266,43 @@ proctype WN(chan car_req) {
 proctype pedestrian(chan pedestrian_req) {
     bit light;
     bit blocker;
-    byte limit;
+    control_chan[5]!1;
     do
-        :: limit > 3 ->
-            if
-            :: ne_req || ew_req || es_req -> skip;
-            :: else -> limit = 0;
-            fi
         :: pedestrian_req ? req ->
             do
                 :: mutex!1 ->
                     if
                     :: !ne_lock && !ew_lock && !es_lock ->
                         pedestrian_lock = true;
-                        mutex?blocker;
                         light = GREEN;
                         printf("Pedestrian crossed the road\n");
-                        // wait (!N_SENSE) /* waits until all cars pass */
                         light = RED;
                         pedestrian_lock = false;
                         req = false;
-                        limit = limit + 1;
+                        mutex?blocker;
+                        mutex2!1;
+                        limit[5] = limit[5] + 1;
+                        if
+                        :: limit[5] > N -> 
+                            if
+                            :: limit[0] > N && limit[1] > N && limit[2] > N && limit[3] > N && limit[4] > N && limit[5] > N ->
+                                control_chan[0]?blocker;
+                                limit[0] = 0;
+                                control_chan[1]?blocker;
+                                limit[1] = 0;
+                                control_chan[2]?blocker;
+                                limit[2] = 0;
+                                control_chan[3]?blocker;
+                                limit[3] = 0;
+                                control_chan[4]?blocker;
+                                limit[4] = 0;
+                                control_chan[5]?blocker;
+                                limit[5] = 0;
+                            :: else -> skip;
+                            fi
+                            mutex2?blocker; control_chan[5]!1;
+                        :: else -> mutex2?blocker;
+                        fi
                         break;
                     :: else -> mutex?blocker;
                     fi
@@ -205,4 +330,8 @@ ltl safety1{[]!(ne_lock == GREEN && sn_lock == GREEN && ew_lock == GREEN && es_l
 ltl safety2{[]!(ne_lock == GREEN && (sn_lock == GREEN || ew_lock == GREEN || es_lock == GREEN || wn_lock == GREEN || pedestrian_lock == GREEN))};
 ltl safety3{[]!(pedestrian_lock == GREEN && (ew_lock == GREEN || es_lock == GREEN || ne_lock == GREEN))};
 
-ltl liveness1{[](ne_req && ne_lock == RED -> <>(ne_lock == GREEN))};
+ltl liveness1{[]((ne_req && (ne_lock == RED)) -> <>(ne_lock == GREEN))};
+ltl liveness2{[]((sn_req && (sn_lock == RED)) -> <>(sn_lock == GREEN))};
+
+
+ltl fairness1{[]<>!((ne_lock == GREEN) && ne_req)};
